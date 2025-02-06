@@ -1,39 +1,46 @@
-using UnityEditor;
-using UnityEngine;
-
-[InitializeOnLoad]
-public static class SpaceToolSwitcher
+namespace JoshElder.SpaceToolSwitcher
 {
-    private static readonly Tool[] cycleTools = new Tool[]
-    {
-        Tool.Move,
-        Tool.Rotate,
-        Tool.Scale
-    };
+    using System;
+    using System.Linq;
+    using UnityEditor;
+    using UnityEngine;
 
-    // This integer will determine which tool in the array we are currently on.
-    private static int currentToolIndex = 0;
-
-    static SpaceToolSwitcher()
+    [InitializeOnLoad]
+    public static class SpaceToolSwitcher
     {
-        // This subscribes to the SceneView's event callback so we can detect key presses in the Scene.
-        SceneView.duringSceneGui += OnSceneGUI;
-    }
+        // Build an array of valid Tools (explicitly skipping 'None').
+        private static readonly Tool[] cycleTools;
+        
+        // Tracks the current tool in the array.
+        private static int currentToolIndex = 0;
 
-    private static void OnSceneGUI(SceneView sceneView)
-    {
-        Event e = Event.current;
-        // Check if the user pressed a key and if that key is the Spacebar.
-        if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Space)
+        static SpaceToolSwitcher()
         {
-            // Advance our index (wrap around using the modulus operator).
-            currentToolIndex = (currentToolIndex + 1) % cycleTools.Length;
+            // Create the array of all enum values, skipping 'None'.
+            cycleTools = ((Tool[])Enum.GetValues(typeof(Tool)))
+                .Where(t => t != Tool.None)
+                .ToArray();
 
-            // Set the current tool in the Unity Editor to the selected tool.
-            Tools.current = cycleTools[currentToolIndex];
+            // Subscribe to the SceneView's event callback to detect key presses.
+            SceneView.duringSceneGui += OnSceneGUI;
+        }
 
-            // Consume the event so other things in Unity don’t also try to use the Space key.
-            e.Use();
+        private static void OnSceneGUI(SceneView sceneView)
+        {
+            Event e = Event.current;
+
+            // Check if the Spacebar was pressed.
+            if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Space)
+            {
+                // Increment and wrap the tool index within the valid range.
+                currentToolIndex = (currentToolIndex + 1) % cycleTools.Length;
+
+                // Set the active tool.
+                Tools.current = cycleTools[currentToolIndex];
+
+                // Mark the event as used so no other elements process it.
+                e.Use();
+            }
         }
     }
 }
